@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	pb "github.com/lahaehae/crud_project/proto/proto"
+	pb "github.com/lahaehae/crud_project/pkg"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

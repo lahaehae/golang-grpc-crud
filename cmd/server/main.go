@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/jackc/pgx/v5"
-	pb "github.com/lahaehae/crud_project/proto/proto"
+	pb "github.com/lahaehae/crud_project/pkg"
 	"google.golang.org/grpc"
 )
 
