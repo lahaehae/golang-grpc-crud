@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
@@ -39,9 +40,29 @@ type server struct {
 
 func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
 	var user pb.UserResponse
-	err := s.db.QueryRow(ctx, "SELECT id, name, email FROM users WHERE id = $1", req.Id).Scan(&user.Id, &user.Name, &user.Email)
+	err := s.db.QueryRow(ctx, "SELECT id, name, email FROM users WHERE id = $1", req.Id).Scan(&user.Id, &user.Name, &user.Email) // req.ID передает клиент и через него сканим поля в бд
 	if err != nil {
 		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (s *server) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.UserResponse, error) {
+	var user pb.UserResponse
+
+	err := s.db.QueryRow(ctx, "SELECT id, name, email FROM users where id = $1", req.Id).Scan(&user.Id, &user.Name, &user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.db.Exec(ctx, "DELETE FROM users where id = $1", req.Id)
+	if err != nil {
+		return nil, err
+	}
+	affectedRows := result.RowsAffected()
+	if affectedRows == 0 {
+		return nil, fmt.Errorf("юзер с таким айди не найден: %v", req.Id)
 	}
 
 	return &user, nil

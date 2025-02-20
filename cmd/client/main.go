@@ -22,11 +22,24 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	userResp, err := c.GetUser(ctx, &pb.GetUserRequest{Id: 1})
+	userResp, err := c.GetUser(ctx, &pb.GetUserRequest{Id: 2})
 	if err != nil {
 		log.Fatalf("Failed to get user: %v", err)
 	}
 
 	log.Printf("Received user: %v", userResp)
 
+	userDeleteResp, err := c.DeleteUser(ctx, &pb.DeleteUserRequest{Id: 2})
+	if err != nil {
+		log.Fatalf("Failed to delete user: %v", err)
+	}
+
+	log.Printf("Deleted user: %v", userDeleteResp)
+
+	userResp2, err := c.GetUser(ctx, &pb.GetUserRequest{Id: 1})
+	if err != nil {
+		log.Printf("такого юзера больше нет %v", err)
+	}
+
+	log.Printf("Received user: %v", userResp2)
 }
