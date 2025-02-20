@@ -46,3 +46,20 @@ func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserR
 
 	return &user, nil
 }
+
+func (s *server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.UserResponse, error) {
+	log.Println("Попытка инсертнуть юзера: ", req.Name, req.Email)
+	var user pb.UserResponse
+	err := s.db.QueryRow(ctx, "INSERT INTO users (name, email)  VALUES ($1, $2) RETURNING id", req.Name, req.Email).Scan(&user.Id) //возвращаем айди из бд
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	user.Name = req.Name
+	user.Email = req.Email
+	log.Println("Юзер успешно инсертнут: ", user.Id, user.Name, user.Email)
+	return &user, nil
+
+}
