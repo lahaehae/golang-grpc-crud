@@ -40,7 +40,7 @@ type server struct {
 
 func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
 	var user pb.UserResponse
-	err := s.db.QueryRow(ctx, "SELECT id, name, email FROM users WHERE id = $1", req.Id).Scan(&user.Id, &user.Name, &user.Email)
+	err := s.db.QueryRow(ctx, "SELECT id, name, email FROM users WHERE id = $1", req.Id).Scan(&user.Id, &user.Name, &user.Email) // req.ID передает клиент и через него сканим поля в бд
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +48,21 @@ func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserR
 	return &user, nil
 }
 
+func (s *server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.UserResponse, error) {
+	log.Println("Попытка инсертнуть юзера: ", req.Name, req.Email)
+	var user pb.UserResponse
+	err := s.db.QueryRow(ctx, "INSERT INTO users (name, email)  VALUES ($1, $2) RETURNING id", req.Name, req.Email).Scan(&user.Id) //возвращаем айди из бд
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	user.Name = req.Name
+	user.Email = req.Email
+	log.Println("Юзер успешно инсертнут: ", user.Id, user.Name, user.Email)
+	return &user, nil
+}
 
 func (s *server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error) {
 	log.Println("Попытка обновить юзера: ", req.Id, req.Name, req.Email)
@@ -68,20 +83,24 @@ func (s *server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	log.Println("Юзер успешно обновлен: ", user.Id, user.Name, user.Email)
 
 	return user, nil
+}
 
-func (s *server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.UserResponse, error) {
-	log.Println("Попытка инсертнуть юзера: ", req.Name, req.Email)
+func (s *server) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.UserResponse, error) {
 	var user pb.UserResponse
-	err := s.db.QueryRow(ctx, "INSERT INTO users (name, email)  VALUES ($1, $2) RETURNING id", req.Name, req.Email).Scan(&user.Id) //возвращаем айди из бд
 
+	err := s.db.QueryRow(ctx, "SELECT id, name, email FROM users where id = $1", req.Id).Scan(&user.Id, &user.Name, &user.Email)
 	if err != nil {
-
 		return nil, err
 	}
 
-	user.Name = req.Name
-	user.Email = req.Email
-	log.Println("Юзер успешно инсертнут: ", user.Id, user.Name, user.Email)
-	return &user, nil
+	result, err := s.db.Exec(ctx, "DELETE FROM users where id = $1", req.Id)
+	if err != nil {
+		return nil, err
+	}
+	affectedRows := result.RowsAffected()
+	if affectedRows == 0 {
+		return nil, fmt.Errorf("юзер с таким айди не найден: %v", req.Id)
+	}
 
+	return &user, nil
 }
