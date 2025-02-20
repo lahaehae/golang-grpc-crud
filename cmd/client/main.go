@@ -29,4 +29,10 @@ func main() {
 
 	log.Printf("Received user: %v", userResp)
 
+	userCreateResp, err := c.CreateUser(ctx, &pb.CreateUserRequest{Name: "John", Email: "johnnytest@mail.com"})
+	if err != nil {
+		log.Fatalf("Failed to create new user: %v", err)
+	}
+	log.Printf("Created new user: %v", userCreateResp)
+
 }
