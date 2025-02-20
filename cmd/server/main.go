@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
@@ -46,6 +47,27 @@ func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserR
 
 	return &user, nil
 }
+
+
+func (s *server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error) {
+	log.Println("Попытка обновить юзера: ", req.Id, req.Name, req.Email)
+
+	result, err := s.db.Exec(ctx, "update users set name=$1, email=$2 where id=$3", req.Name, req.Email, req.Id)
+	if err != nil {
+		return nil, err
+	}
+	rowsAffected := result.RowsAffected() // чекаем на обновление
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("user with id %v not found ", req.Id)
+	}
+	user := &pb.UserResponse{
+		Id:    req.Id,
+		Name:  req.Name,
+		Email: req.Email,
+	}
+	log.Println("Юзер успешно обновлен: ", user.Id, user.Name, user.Email)
+
+	return user, nil
 
 func (s *server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.UserResponse, error) {
 	log.Println("Попытка инсертнуть юзера: ", req.Name, req.Email)
