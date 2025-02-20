@@ -29,7 +29,19 @@ func main() {
 
 	log.Printf("Received user: %v", userResp)
 
-	userDeleteResp, err := c.DeleteUser(ctx, &pb.DeleteUserRequest{Id: 2})
+  userCreateResp, err := c.CreateUser(ctx, &pb.CreateUserRequest{Name: "John", Email: "johnnytest@mail.com"})
+	if err != nil {
+		log.Fatalf("Failed to create new user: %v", err)
+	}
+	log.Printf("Created new user: %v", userCreateResp)
+  
+  userUpdateResp, err := c.UpdateUser(ctx, &pb.UpdateUserRequest{Id: 1, Name: "Smith", Email: "smith@mail.com"})
+	if err != nil {
+		log.Fatalf("Failed to update user: %v", err)
+	}
+	log.Printf("Updated user: %v", userUpdateResp)
+
+  userDeleteResp, err := c.DeleteUser(ctx, &pb.DeleteUserRequest{Id: 2})
 	if err != nil {
 		log.Fatalf("Failed to delete user: %v", err)
 	}
@@ -42,4 +54,12 @@ func main() {
 	}
 
 	log.Printf("Received user: %v", userResp2)
+
+
+	
+
+
+
+
+
 }
