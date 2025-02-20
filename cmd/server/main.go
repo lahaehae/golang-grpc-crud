@@ -46,3 +46,20 @@ func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserR
 
 	return &user, nil
 }
+
+func (s *server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error) {
+	log.Println("Попытка обновить юзера: ", req.Id, req.Name, req.Email)
+
+	var user pb.UserResponse
+
+	err := s.db.QueryRow(ctx, "update users set name=$1, email=$2 where id=$3", req.Name, req.Email).Scan(&user.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Name = req.Name
+	user.Email = req.Email
+	log.Println("Юзер успешно обновлен: ", user.Id, user.Name, user.Email)
+
+	return &user, nil
+}
