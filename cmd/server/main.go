@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/jackc/pgx/v5"
 	pb "github.com/lahaehae/crud_project/pkg"
@@ -12,7 +13,11 @@ import (
 )
 
 func main() {
-	conn, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@localhost:5433/crud_project")
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
+	conn, err := pgx.Connect(context.Background(), dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
