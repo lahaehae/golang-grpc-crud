@@ -13,16 +13,22 @@ import (
 )
 
 func main() {
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Fatal("DATABASE_URL is not set")
-	}
-	conn, err := pgx.Connect(context.Background(), dsn)
+	connStr := os.Getenv("DATABASE_URL")
+	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
 
 	defer conn.Close(context.Background())
+
+	_, err = conn.Exec(context.Background(), `CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(255),
+		email VARCHAR(255)
+	);`)
+	if err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
 
 	lis, err := net.Listen("tcp", ":9001")
 	if err != nil {
