@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/jackc/pgx/v5"
 	pb "github.com/lahaehae/crud_project/pkg"
@@ -12,12 +13,22 @@ import (
 )
 
 func main() {
-	conn, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@localhost:5433/crud_project")
+	connStr := os.Getenv("DATABASE_URL")
+	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
 
 	defer conn.Close(context.Background())
+
+	_, err = conn.Exec(context.Background(), `CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(255),
+		email VARCHAR(255)
+	);`)
+	if err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
 
 	lis, err := net.Listen("tcp", ":9001")
 	if err != nil {
