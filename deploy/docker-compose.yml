@@ -26,7 +26,7 @@ services:
     depends_on:
       - db
     networks:
-      - app_networkв
+      - app_network
 
   grpc-client:
     build:
