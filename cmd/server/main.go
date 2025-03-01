@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
+
+	//"os"
 
 	"github.com/jackc/pgx/v5"
 	pb "github.com/lahaehae/crud_project/pkg"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-	connStr := os.Getenv("DATABASE_URL")
-	conn, err := pgx.Connect(context.Background(), connStr)
+	//connStr := os.Getenv("DATABASE_URL")
+	conn, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable")
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
@@ -30,12 +32,16 @@ func main() {
 		log.Fatalf("Failed to create table: %v", err)
 	}
 
+	
+
 	lis, err := net.Listen("tcp", ":9001")
 	if err != nil {
 		log.Fatalf("Failed to connect to tcp server at 9001: %v", err)
 	}
 
 	grpcServer := grpc.NewServer()
+
+	reflection.Register(grpcServer)
 
 	pb.RegisterUserServiceServer(grpcServer, &server{db: conn})
 
