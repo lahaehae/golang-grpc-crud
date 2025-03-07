@@ -14,25 +14,25 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/metric"
+	//"go.opentelemetry.io/otel/metric"
 )
 
 var (
 	tracer 			= otel.Tracer("grpc-client")
 	meter           = otel.Meter("grpc-client")
-	requestsCounter metric.Int64Counter
+	//requestsCounter metric.Int64Counter
 )
 
-func initMetrics() {
-	var err error
-	requestsCounter, err = meter.Int64Counter("grpc_client_requests_total")
-	if err != nil {
-		log.Fatalf("Ошибка создания метрики: %v", err)
-	}
-}
+// func initMetrics() {
+// 	var err error
+// 	requestsCounter, err = meter.Int64Counter("grpc_client_requests_total")
+// 	if err != nil {
+// 		log.Fatalf("Ошибка создания метрики: %v", err)
+// 	}
+// }
 
 func main() {
-	initMetrics()
+	// initMetrics()
 
 	conn, err := grpc.NewClient(":9001", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -68,7 +68,8 @@ func main() {
 				return
 			}
 			log.Printf("Created user: %v", userCreateResp)
-		}(i)	
+		}(i)
+		//time.Sleep(5 * time.Millisecond)	
 	}
 
 	wg.Wait()

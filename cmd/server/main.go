@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	pb "github.com/lahaehae/crud_project/pkg"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -160,12 +160,12 @@ func main() {
 
 	//"postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable"
 	// connStr := os.Getenv("DATABASE_URL")
-	conn, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable")
+	conn, err := pgxpool.New(context.Background(), "postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable")
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
 
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	_, err = conn.Exec(context.Background(), `CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
@@ -197,42 +197,11 @@ func main() {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 
-	
-	// name := "user-service"
-	//tracer := otel.Tracer(name)
-	// meter := otel.Meter(name)
-
-	// commonAttrs := []attribute.KeyValue{
-	// 	attribute.String("attrA", "chocolate"),
-	// 	attribute.String("attrB", "raspberry"),
-	// 	attribute.String("attrC", "vanilla"),
-	// }
-
-	// Создаём глобальный Tracer
-	// tracer := otel.Tracer("grpc-server")
-
-	// Создаём глобальный Meter
-	// meter := otel.Meter("grpc-server")
-
-	// Создаём счетчик запросов
-
-	// requestsCounter, _ = meter.Int64Counter(
-	// 	"count",
-	// 	metric.WithDescription("Общее количество gRPC-запросов"),
-	// )
-
-	// // Создаём гистограмму для измерения задержек
-	// latencyRecorder, _ = meter.Float64Histogram(
-	// 	"latency",
-	// 	metric.WithDescription("Время обработки gRPC-запросов"),
-	// )
-
-
 }
 
 type server struct {
 	pb.UnimplementedUserServiceServer
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
