@@ -1,9 +1,9 @@
-PWD := $(shell pwd)
-
 build_proto:
-	protoc --go_out=./proto --go_opt=paths=source_relative \
-	       --go-grpc_out=./proto --go-grpc_opt=paths=source_relative \
-	       proto/user.proto
+	protoc --proto_path=proto \
+       --go_out=internal/pb --go_opt=paths=source_relative \
+       --go-grpc_out=internal/pb --go-grpc_opt=paths=source_relative \
+       proto/user.proto
+
 build_grpc_ui:
 	grpcui -plaintext localhost:9001
 
