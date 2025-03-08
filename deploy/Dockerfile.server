@@ -12,10 +12,18 @@ COPY . .
 # Собираем бинарник
 RUN go build -o ./userapi ./cmd/server/main.go
 
+
+
+
 # Минимальный образ без лишнего мусора
 FROM gcr.io/distroless/base-debian12
 
 WORKDIR /app
-COPY --from=builder /build/userapi ./userapi
+COPY --from=builder /build/userapi ./userapi    
+
+ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=grpc://otelcollector:4317/v1/traces  
+ENV OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=grpc://otlecollector:4317/v1/metrics
+ENV OTEL_SERVICE_NAME=crud-service
+ENV OTEL_RESOURCE_ATTRIBUTES="application=crud-service"
 
 CMD ["/app/userapi"]
