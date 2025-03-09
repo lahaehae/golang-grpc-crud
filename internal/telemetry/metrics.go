@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -14,10 +15,12 @@ import (
 )
 
 var (
+	once			 sync.Once
 	Meter            metric.Meter
 	RequestsCounter  metric.Int64Counter
 	LatencyRecorder  metric.Float64Histogram
 	ErrorCounter     metric.Int64Counter
+	RepoLatencyRecorder metric.Float64Histogram
 )
 
 // Initializes an OTLP exporter, and configures the corresponding meter provider.
@@ -37,9 +40,9 @@ func InitMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.C
 }
 
 func InitMetrics() {
-	Meter = otel.Meter("grpc-server")
-
-	var err error
+	once.Do(func(){
+		Meter = otel.Meter("grpc-server")
+		var err error
 	RequestsCounter, err = Meter.Int64Counter(
 		"count",
 		metric.WithDescription("Общее количество gRPC-запросов"),
@@ -56,6 +59,14 @@ func InitMetrics() {
 		log.Printf("Ошибка создания гистограммы задержек: %v", err)
 	}
 
+	RepoLatencyRecorder, err = Meter.Float64Histogram(
+		"repository_latency",
+		metric.WithDescription("Время обработки запросов в repository"),
+	)
+	if err != nil {
+		log.Printf("failed to create repository_latency histogram")
+	}
+
 	ErrorCounter, err = Meter.Int64Counter(
 		"grpc_server_errors_total",
 		metric.WithDescription("Количество ошибок gRPC-запросов"),
@@ -63,4 +74,7 @@ func InitMetrics() {
 	if err != nil {
 		log.Printf("Ошибка создания счетчика ошибок")
 	}
+
+	})
+	
 }

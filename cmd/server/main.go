@@ -56,6 +56,8 @@ func main() {
 	log.Println("Успешное инициализация метрик")
 	defer shutdownMeter(ctx)
 
+
+	telemetry.InitMetrics()
 	//"postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable"
 	// connStr := os.Getenv("DATABASE_URL")
 	dsn := "postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable"

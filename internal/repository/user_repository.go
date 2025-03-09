@@ -2,9 +2,19 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	pb "github.com/lahaehae/crud_project/internal/pb"
+	"github.com/lahaehae/crud_project/internal/telemetry"
+
+	//"github.com/lahaehae/crud_project/internal/telemetry"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type UserRepo interface{
@@ -15,18 +25,46 @@ type UserRepo interface{
 }
 
 type UserRepository struct {
-	db *pgxpool.Pool
+	db *pgxpool.Pool;
+	meter metric.Meter;
+	tracer trace.Tracer;
 }
 
 func NewUserRepository(db *pgxpool.Pool) *UserRepository{
-	return &UserRepository{db: db}
+	return &UserRepository{
+		db: db,
+		meter: otel.Meter("repository"),
+		tracer: otel.Tracer("repository"),
+	}
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, name, email string) (*pb.UserResponse, error) {
+	ctx, span := r.tracer.Start(ctx, "Repository.CreateUser")
+	defer span.End()
+
+	start := time.Now()
+
+	query := "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id"
 	var id int32
-	err := r.db.QueryRow(ctx, "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id", name, email).Scan(&id)
+	err := r.db.QueryRow(ctx, query, name, email).Scan(&id)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.Int64("userId: ", int64(id)),
+			attribute.String("error.type", fmt.Sprintf("%T", err)),
+			attribute.String("error.msg", err.Error()),
+			attribute.String("query", query),
+			))
 		return nil, err
+	}
+	duration := time.Since(start).Milliseconds()
+	span.SetAttributes(
+		attribute.Int64("db_query.time_ms", duration),
+		attribute.Int64("db_query.user_id", int64(id)),
+	)
+
+	if telemetry.RepoLatencyRecorder != nil {
+		telemetry.RepoLatencyRecorder.Record(ctx, time.Since(start).Seconds())
 	}
 	return &pb.UserResponse{Id: id, Name: name, Email: email}, nil
 }
