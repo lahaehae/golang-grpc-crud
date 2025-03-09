@@ -44,19 +44,42 @@ func (r *UserRepository) CreateUser(ctx context.Context, name, email string) (*p
 
 	start := time.Now()
 
-	query := "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id"
-	var id int32
-	err := r.db.QueryRow(ctx, query, name, email).Scan(&id)
+	// Начинаем транзакцию
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		span.RecordError(err)
 		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
-			attribute.Int64("userId: ", int64(id)),
+			attribute.String("error.type", "TransactionBegin"),
+			attribute.String("error.msg", err.Error()),
+		))
+		return nil, err
+	}
+	defer tx.Rollback(ctx) // Откат, если произойдет ошибка
+
+	query := "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id"
+	var id int32
+	err = tx.QueryRow(ctx, query, name, email).Scan(&id)
+	if err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.Int64("userId", int64(id)),
 			attribute.String("error.type", fmt.Sprintf("%T", err)),
 			attribute.String("error.msg", err.Error()),
 			attribute.String("query", query),
-			))
+		))
 		return nil, err
 	}
+
+	// Фиксируем транзакцию
+	if err := tx.Commit(ctx); err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("error.type", "TransactionCommit"),
+			attribute.String("error.msg", err.Error()),
+		))
+		return nil, err
+	}
+
 	duration := time.Since(start).Milliseconds()
 	span.SetAttributes(
 		attribute.Int64("db_query.time_ms", duration),
@@ -66,15 +89,63 @@ func (r *UserRepository) CreateUser(ctx context.Context, name, email string) (*p
 	if telemetry.RepoLatencyRecorder != nil {
 		telemetry.RepoLatencyRecorder.Record(ctx, time.Since(start).Seconds())
 	}
+
 	return &pb.UserResponse{Id: id, Name: name, Email: email}, nil
 }
 
+
 func (r *UserRepository) GetUser(ctx context.Context, id int32) (*pb.UserResponse, error) {
-	var user pb.UserResponse
-	err := r.db.QueryRow(ctx, "SELECT id, name, email FROM users WHERE id = $1", id).Scan(&user.Id, &user.Name, &user.Email)
+	ctx, span := r.tracer.Start(ctx, "Repository.GetUser")
+	defer span.End()
+
+	start := time.Now()
+
+	// Начинаем транзакцию
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("error.type", "TransactionBegin"),
+			attribute.String("error.msg", err.Error()),
+		))
 		return nil, err
 	}
+	defer tx.Rollback(ctx) // Откат при ошибке
+
+	var user pb.UserResponse
+	query := "SELECT id, name, email FROM users WHERE id = $1"
+	err = tx.QueryRow(ctx, query, id).Scan(&user.Id, &user.Name, &user.Email)
+	if err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.Int64("userId", int64(id)),
+			attribute.String("error.type", fmt.Sprintf("%T", err)),
+			attribute.String("error.msg", err.Error()),
+			attribute.String("query", query),
+		))
+		return nil, err
+	}
+	
+	// Фиксируем транзакцию
+	if err := tx.Commit(ctx); err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("error.type", "TransactionCommit"),
+			attribute.String("error.msg", err.Error()),
+		))
+		return nil, err
+	}
+
+	duration := time.Since(start).Milliseconds()
+	span.SetAttributes(
+		attribute.Int64("db_query.time_ms", duration),
+		attribute.Int64("db_query.user_id", int64(user.Id)),
+	)
+
+	if telemetry.RepoLatencyRecorder != nil {
+		telemetry.RepoLatencyRecorder.Record(ctx, time.Since(start).Seconds())
+	}
+
 	return &user, nil
 }
 

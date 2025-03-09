@@ -66,9 +66,33 @@ func (s *UserService) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 }
 
 func (s *UserService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
+	ctx, span := s.tracer.Start(ctx, "Service.GetUser")
+	defer span.End()
+
+	start := time.Now()
+	
+	if telemetry.RequestsCounter != nil {
+		telemetry.RequestsCounter.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("method: ", "GetUser"),
+			),
+		)
+	}
+
+
 	user, err := s.repo.GetUser(ctx, req.Id)
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.Int64("userId: ", int64(user.Id)),
+			attribute.String("error.type", fmt.Sprintf("%T", err)),
+			attribute.String("error.msg", err.Error()),
+			))
+		return nil, err	
+	}
+
+	if telemetry.LatencyRecorder != nil{
+		telemetry.LatencyRecorder.Record(ctx, time.Since(start).Seconds())
 	}
 	return &pb.UserResponse{
 		Id:    user.Id,
