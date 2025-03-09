@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/lahaehae/crud_project/pkg"
+	pb "github.com/lahaehae/crud_project/internal/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 

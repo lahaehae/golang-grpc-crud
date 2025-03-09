@@ -1,12 +1,12 @@
 syntax = "proto3";
-package user;
-option go_package = "github.com/lahaehae/crud_project/user_protos";
+package pb;
+option go_package = "internal/pb";
 
 service UserService {
     rpc CreateUser (CreateUserRequest) returns (UserResponse);
     rpc GetUser (GetUserRequest) returns (UserResponse);
     rpc UpdateUser (UpdateUserRequest) returns (UserResponse);
-    rpc DeleteUser (DeleteUserRequest) returns (UserResponse);
+    rpc DeleteUser (DeleteUserRequest) returns (Empty);
 }
 
 message CreateUserRequest{
