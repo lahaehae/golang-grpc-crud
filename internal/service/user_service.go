@@ -44,7 +44,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 			),
 		)
 	}
-	user, err := s.repo.CreateUser(ctx, req.Name, req.Email)
+	user, err := s.repo.CreateUser(ctx, req.Name, req.Email, req.Balance)
 	if err != nil {
 		span.RecordError(err)
 		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
@@ -62,6 +62,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 		Id:    user.Id,
 		Name:  user.Name,
 		Email: user.Email,
+		Balance: user.Balance,
 	}, nil
 }
 
@@ -84,7 +85,6 @@ func (s *UserService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.
 	if err != nil {
 		span.RecordError(err)
 		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
-			attribute.Int64("userId: ", int64(user.Id)),
 			attribute.String("error.type", fmt.Sprintf("%T", err)),
 			attribute.String("error.msg", err.Error()),
 			))
@@ -98,11 +98,12 @@ func (s *UserService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.
 		Id:    user.Id,
 		Name:  user.Name,
 		Email: user.Email,
+		Balance: user.Balance,
 	}, nil
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error) {
-	user, err := s.repo.UpdateUser(ctx, req.Id, req.Name, req.Email)
+	user, err := s.repo.UpdateUser(ctx, req.Id, req.Name, req.Email, req.Balance)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +111,27 @@ func (s *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest)
 		Id:    user.Id,
 		Name:  user.Name,
 		Email: user.Email,
+		Balance: user.Balance,
 	}, nil
 }
+
+func (s *UserService) TransferFunds(ctx context.Context, req *pb.TransferFundsUserRequset) (*pb.UserResponse, error) {
+	user, err := s.repo.TransferFunds(ctx, req.Fromid, req.Toid, req.Balance)
+	if err != nil {
+		return nil, err
+	}
+	user1, err := s.repo.GetUser(ctx, req.Toid)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UserResponse{
+		Id: user.Id,
+		Name: user1.Name,
+		Email: user1.Email,
+		Balance: user.Balance,
+	}, nil
+}
+
 
 func (s *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.Empty, error) {
 	err := s.repo.DeleteUser(ctx, req.Id)

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -77,4 +78,20 @@ func InitMetrics() {
 
 	})
 	
+}
+
+func RecordErrorMetric(ctx context.Context, operation string, err error) {
+	if err == nil{
+		return
+	}
+
+    if ErrorCounter != nil {
+        ErrorCounter.Add(ctx, 1, 
+            metric.WithAttributes(
+                attribute.String("operation", operation),
+                attribute.String("error.type", fmt.Sprintf("%T", err)),
+                attribute.String("error.msg", err.Error()),
+            ),
+        )
+    }
 }
