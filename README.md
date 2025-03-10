@@ -1,6 +1,6 @@
 ## CRUD Project with gRPC, PostgreSQL, and OpenTelemetry
 
-Этот проект — сервис CRUD с gRPC, базой данных PostgreSQL и мониторингом через OpenTelemetry, Jaeger и Prometheus. 
+This project is a CRUD service using gRPC, PostgreSQL, and monitoring tools such as OpenTelemetry, Jaeger, and Prometheus. 
 
 <p align="center">
 <img src="image.png" alt="Architecture Diagram" width="350"/>
