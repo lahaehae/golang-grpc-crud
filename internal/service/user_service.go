@@ -103,8 +103,21 @@ func (s *UserService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error) {
+	ctx, span := s.tracer.Start(ctx, "Service.UpdateUser")
+	defer span.End()
+
+	if telemetry.RequestsCounter != nil {
+		telemetry.RequestsCounter.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("method: ", "UpdateUser"),
+			),
+		)
+	}
+
 	user, err := s.repo.UpdateUser(ctx, req.Id, req.Name, req.Email, req.Balance)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.RecordErrorMetric(ctx, "repo_update_user", err)
 		return nil, err
 	}
 	return &pb.UserResponse{
@@ -116,12 +129,26 @@ func (s *UserService) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest)
 }
 
 func (s *UserService) TransferFunds(ctx context.Context, req *pb.TransferFundsUserRequset) (*pb.UserResponse, error) {
+	ctx, span := s.tracer.Start(ctx, "Service.TransferFunds")
+	defer span.End()
+	
+	if telemetry.RequestsCounter != nil {
+		telemetry.RequestsCounter.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("method: ", "TransferFunds"),
+			),
+		)
+	}
 	user, err := s.repo.TransferFunds(ctx, req.Fromid, req.Toid, req.Balance)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.RecordErrorMetric(ctx, "repo_transfer_funds", err)
 		return nil, err
 	}
 	user1, err := s.repo.GetUser(ctx, req.Toid)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.RecordErrorMetric(ctx, "repo_get_user", err)
 		return nil, err
 	}
 	return &pb.UserResponse{
@@ -134,8 +161,21 @@ func (s *UserService) TransferFunds(ctx context.Context, req *pb.TransferFundsUs
 
 
 func (s *UserService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.Empty, error) {
+	ctx, span := s.tracer.Start(ctx, "Service.DeleteUser")
+	defer span.End()
+
+	if telemetry.RequestsCounter != nil {
+		telemetry.RequestsCounter.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("method: ", "DeleteUser"),
+			),
+		)
+	}
+
 	err := s.repo.DeleteUser(ctx, req.Id)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.RecordErrorMetric(ctx, "repo_delete_user", err)
 		return nil, err
 	}
 	return &pb.Empty{}, nil

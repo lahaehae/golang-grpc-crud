@@ -110,9 +110,32 @@ func (r *UserRepository) GetUser(ctx context.Context, id int64) (*pb.UserRespons
 }
 
 func (r *UserRepository) UpdateUser(ctx context.Context, id int64, name, email string, balance int64) (*pb.UserResponse, error) {
-	_, err := r.db.Exec(ctx, "UPDATE users SET name = $1, email = $2, balance = $3 WHERE id = $4", name, email, balance, id)
+	ctx, span := r.tracer.Start(ctx, "Repository.UpdateUser")
+	defer span.End()
+
+	start := time.Now()
+
+	query := "UPDATE users SET name = $1, email = $2, balance = $3 WHERE id = $4"
+	_, err := r.db.Exec(ctx, query, name, email, balance, id)
 	if err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("method:", "UpdateUser"),
+			attribute.String("error.type", fmt.Sprintf("%T", err)),
+			attribute.String("error.msg", err.Error()),
+			attribute.String("query", query),
+		))
 		return nil, err
+	}
+
+	duration := time.Since(start).Milliseconds()
+	span.SetAttributes(
+		attribute.Int64("db_query.time_ms", duration),
+		attribute.Int64("db_query.user_id", id),
+	)
+
+	if telemetry.RepoLatencyRecorder != nil {
+		telemetry.RepoLatencyRecorder.Record(ctx, time.Since(start).Seconds())
 	}
 	return &pb.UserResponse{
 		Id:      id,
@@ -126,7 +149,7 @@ func (r *UserRepository) TransferFunds(ctx context.Context, fromId, toId, balanc
 	ctx, span := r.tracer.Start(ctx, "Repository.TransferFunds")
 	defer span.End()
 
-	//start:= time.Now()
+	start:= time.Now()
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -164,6 +187,17 @@ func (r *UserRepository) TransferFunds(ctx context.Context, fromId, toId, balanc
 		return nil, err
 	}
 
+	duration := time.Since(start).Milliseconds()
+	span.SetAttributes(
+		attribute.Int64("db_query.time_ms", duration),
+		attribute.Int64("db_query.user_fromId", fromId),
+		attribute.Int64("db_query.user_toId", toId),
+	)
+
+	if telemetry.RepoLatencyRecorder != nil {
+		telemetry.RepoLatencyRecorder.Record(ctx, time.Since(start).Seconds())
+	}
+
 	return &pb.UserResponse{
 		Id:      toId,
 		Balance: newBalance,
@@ -172,7 +206,35 @@ func (r *UserRepository) TransferFunds(ctx context.Context, fromId, toId, balanc
 }
 
 func (r *UserRepository) DeleteUser(ctx context.Context, id int64) error {
-	_, err := r.db.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
+	ctx, span := r.tracer.Start(ctx, "Repository.DeleteUser")
+	defer span.End()
+
+	query := "DELETE FROM users WHERE id = $1"
+
+	start := time.Now()
+
+	_, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		span.RecordError(err)
+		telemetry.ErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("method:", "DeleteUser"),
+			attribute.String("error.type", fmt.Sprintf("%T", err)),
+			attribute.String("error.msg", err.Error()),
+			attribute.String("query", query),
+		))
+		return err
+	}
+
+	duration := time.Since(start).Milliseconds()
+	span.SetAttributes(
+		attribute.Int64("db_query.time_ms", duration),
+		attribute.Int64("db_query.user_id", id),
+	)
+
+	if telemetry.RepoLatencyRecorder != nil {
+		telemetry.RepoLatencyRecorder.Record(ctx, time.Since(start).Seconds())
+	}
+
 	return err
 }
 
