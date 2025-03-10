@@ -1,44 +1,41 @@
 version: "3.8"
 
 services:
-  # db:
-  #   image: postgres:17
-  #   container_name: db
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: crud_project
-  #     POSTGRES_PORT: 5432
-  #   ports:
-  #     - "5432:5432"
-  #   networks:
-  #     - app_network
-
-  # grpc-server:
-  #   build:
-  #     context: ..
-  #     dockerfile: deploy/Dockerfile.server
-  #   container_name: grpc-server
-  #   ports:
-  #     - "9001:9001"
-  #   environment:
-  #     - DATABASE_URL=postgres://postgres:postgres@db:5432/crud_project?sslmode=disable
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - app_network
+  db:
+    image: postgres:16
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: crud_project
+      POSTGRES_PORT: 5432
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+    volumes:
+      - C:/Users/aidyn/Desktop/crud_project/deploy/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 
-  # grpc-client:
-  #   build:
-  #     context: ..
-  #     dockerfile: deploy/Dockerfile.client
-  #   container_name: grpc-client
-  #   depends_on:
-  #     - grpc-server
-  #   networks:
-  #     - app_network
+  grpc-server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.server
+    container_name: grpc-server
+    ports:
+      - "9001:9001"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/crud_project?sslmode=disable
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=grpc-server
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER=otlp
+    depends_on:
+      - db
+    networks:
+      - app_network
+      
 
 
   otel-collector:

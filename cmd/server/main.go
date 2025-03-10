@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	pb "github.com/lahaehae/crud_project/internal/pb"
@@ -59,9 +60,9 @@ func main() {
 
 	telemetry.InitMetrics()
 	//"postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable"
-	// connStr := os.Getenv("DATABASE_URL")
-	dsn := "postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable"
-	conn, err := db.InitDB(dsn)
+	connStr := os.Getenv("DATABASE_URL")
+	//dsn := "postgres://postgres:postgres@localhost:5433/crud_project?sslmode=disable"
+	conn, err := db.InitDB(connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to database")
 	}
